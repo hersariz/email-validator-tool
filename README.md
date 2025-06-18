@@ -72,8 +72,8 @@ Email Validator Tool membantu:
 
 1. Clone repositori ini:
    ```
-   git clone https://github.com/yourusername/email_validator.git
-   cd email_validator
+   git clone https://github.com/hersariz/email-validator-tool.git
+   cd email-validator-tool
    ```
 
 2. Buat virtual environment:
@@ -118,7 +118,7 @@ Email Validator Tool membantu:
 ## 📂 Struktur File
 
 ```
-email_validator/
+email-validator-tool/
 ├── app.py                 # Main streamlit app dengan visualisasi
 ├── validator.py           # Integrasi dengan AbstractAPI
 ├── utils.py               # Fungsi tambahan (kategorisasi email, dll)
@@ -156,4 +156,4 @@ email_validator/
 
 - Validasi menggunakan AbstractAPI memerlukan koneksi internet
 - AbstractAPI memiliki batasan jumlah request per bulan
-- Domain atau server email tertentu mungkin memblokir validasi SMTP 
+- Domain atau server email tertentu mungkin memblokir validasi SMTP
