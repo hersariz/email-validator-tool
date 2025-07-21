@@ -1,7 +1,7 @@
 import requests
 from utils import categorize_email
 
-def validate_with_abstractapi(email, api_key="8fa409c59650416fb2cb8dccc0bfc2d7"):
+def validate_with_abstractapi(email, api_key="bb5407401a0f45bcaffbe59a080d393c"):
     """
     Memvalidasi email menggunakan AbstractAPI Email Validation.
     
