@@ -37,7 +37,6 @@ def main():
         - Menghindari email bounce
         - Mengelompokkan jenis email (personal vs bisnis)
         
-        **Dibuat untuk:** Seleksi internship Caprae Capital
         """
     )
     
