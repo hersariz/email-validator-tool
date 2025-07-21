@@ -14,14 +14,21 @@ def validate_with_abstractapi(email, api_key="bb5407401a0f45bcaffbe59a080d393c")
     """
     try:
         url = f"https://emailvalidation.abstractapi.com/v1/?api_key={api_key}&email={email}"
-        response = requests.get(url)
+        response = requests.get(url, timeout=10)  # Tambahkan timeout untuk menghindari hanging
         
         if response.status_code == 200:
             return response.json()
         else:
+            print(f"API Error untuk email {email}: Status code {response.status_code}, Response: {response.text}")
             return None
+    except requests.exceptions.Timeout:
+        print(f"Timeout saat validasi email {email}")
+        return None
+    except requests.exceptions.RequestException as e:
+        print(f"Request Error saat validasi email {email}: {e}")
+        return None
     except Exception as e:
-        print(f"Error validasi AbstractAPI: {e}")
+        print(f"Error validasi AbstractAPI untuk email {email}: {e}")
         return None
 
 def validate_email(email, use_api=True):

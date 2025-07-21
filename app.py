@@ -149,24 +149,40 @@ def extract_api_data(validation_results):
         email = result.get('email', '')
         api_result = result.get('api_validation', {})
         
-        if not api_result:
-            continue
-        
         # Ekstrak data dari API result
         entry = {
             'email': email,
             'category': result.get('category', 'unknown'),
-            'quality_score': api_result.get('quality_score', 0),
-            'deliverability': api_result.get('deliverability', 'UNKNOWN'),
-            'is_valid_format': api_result.get('is_valid_format', {}).get('value', False) if isinstance(api_result.get('is_valid_format'), dict) else False,
-            'is_free_email': api_result.get('is_free_email', {}).get('value', False) if isinstance(api_result.get('is_free_email'), dict) else False,
-            'is_disposable': api_result.get('is_disposable_email', {}).get('value', False) if isinstance(api_result.get('is_disposable_email'), dict) else False,
-            'is_role_email': api_result.get('is_role_email', {}).get('value', False) if isinstance(api_result.get('is_role_email'), dict) else False,
-            'is_catchall': api_result.get('is_catchall_email', {}).get('value', False) if isinstance(api_result.get('is_catchall_email'), dict) else False,
-            'has_mx_record': api_result.get('is_mx_found', {}).get('value', False) if isinstance(api_result.get('is_mx_found'), dict) else False,
-            'is_smtp_valid': api_result.get('is_smtp_valid', {}).get('value', False) if isinstance(api_result.get('is_smtp_valid'), dict) else False,
-            'autocorrect': api_result.get('autocorrect', '')
         }
+        
+        # Jika api_result tersedia, tambahkan detail validasi
+        if api_result:
+            entry.update({
+                'quality_score': api_result.get('quality_score', 0),
+                'deliverability': api_result.get('deliverability', 'UNKNOWN'),
+                'is_valid_format': api_result.get('is_valid_format', {}).get('value', False) if isinstance(api_result.get('is_valid_format'), dict) else False,
+                'is_free_email': api_result.get('is_free_email', {}).get('value', False) if isinstance(api_result.get('is_free_email'), dict) else False,
+                'is_disposable': api_result.get('is_disposable_email', {}).get('value', False) if isinstance(api_result.get('is_disposable_email'), dict) else False,
+                'is_role_email': api_result.get('is_role_email', {}).get('value', False) if isinstance(api_result.get('is_role_email'), dict) else False,
+                'is_catchall': api_result.get('is_catchall_email', {}).get('value', False) if isinstance(api_result.get('is_catchall_email'), dict) else False,
+                'has_mx_record': api_result.get('is_mx_found', {}).get('value', False) if isinstance(api_result.get('is_mx_found'), dict) else False,
+                'is_smtp_valid': api_result.get('is_smtp_valid', {}).get('value', False) if isinstance(api_result.get('is_smtp_valid'), dict) else False,
+                'autocorrect': api_result.get('autocorrect', '')
+            })
+        else:
+            # Jika api_result tidak tersedia, tambahkan nilai default
+            entry.update({
+                'quality_score': 0,
+                'deliverability': 'FAILED',
+                'is_valid_format': False,
+                'is_free_email': False,
+                'is_disposable': False,
+                'is_role_email': False,
+                'is_catchall': False,
+                'has_mx_record': False,
+                'is_smtp_valid': False,
+                'autocorrect': 'API validation failed'
+            })
         
         api_data.append(entry)
     
@@ -283,6 +299,60 @@ def display_validation_dashboard(df):
         st.plotly_chart(fig, use_container_width=True)
 
 
+def format_csv_export(df):
+    """
+    Memformat dataframe untuk ekspor CSV yang lebih rapi dan tersusun
+    """
+    # Buat copy dataframe untuk format ekspor
+    export_df = df.copy()
+    
+    # Format quality_score sebagai persentase
+    export_df['quality_score'] = export_df['quality_score'].apply(
+        lambda x: f"{float(x)*100:.1f}%" if isinstance(x, (int, float)) else x
+    )
+    
+    # Format boolean menjadi "Ya" dan "Tidak"
+    bool_columns = [
+        'is_valid_format', 'has_mx_record', 'is_smtp_valid', 
+        'is_free_email', 'is_role_email', 'is_disposable', 'is_catchall'
+    ]
+    
+    for col in bool_columns:
+        if col in export_df.columns:
+            # Untuk field negatif, invert nilai untuk konsistensi dalam pembacaan
+            if col in ['is_role_email', 'is_disposable', 'is_catchall']:
+                export_df[col] = export_df[col].apply(lambda x: "Tidak" if x else "Ya")
+            else:
+                export_df[col] = export_df[col].apply(lambda x: "Ya" if x else "Tidak")
+    
+    # Rename kolom untuk tampilan yang lebih baik
+    export_df = export_df.rename(columns={
+        'email': 'Email',
+        'category': 'Jenis Email',
+        'quality_score': 'Skor Kualitas (%)',
+        'deliverability': 'Status Deliverability',
+        'is_valid_format': 'Format Email Valid',
+        'is_free_email': 'Email Layanan Gratis',
+        'is_disposable': 'Bukan Email Disposable',
+        'is_role_email': 'Bukan Email Peran',
+        'is_catchall': 'Bukan Email Catchall',
+        'has_mx_record': 'Memiliki MX Record',
+        'is_smtp_valid': 'SMTP Valid',
+        'autocorrect': 'Saran Koreksi'
+    })
+    
+    # Atur urutan kolom
+    column_order = [
+        'Email', 'Jenis Email', 'Status Deliverability', 'Skor Kualitas (%)', 
+        'Format Email Valid', 'Memiliki MX Record', 'SMTP Valid', 
+        'Bukan Email Disposable', 'Email Layanan Gratis', 'Bukan Email Peran', 
+        'Bukan Email Catchall', 'Saran Koreksi'
+    ]
+    
+    export_df = export_df[[col for col in column_order if col in export_df.columns]]
+    return export_df
+
+
 def display_validation_table(df):
     """
     Menampilkan tabel hasil validasi email
@@ -304,6 +374,15 @@ def display_validation_table(df):
                 display_df[col] = display_df[col].apply(lambda x: "❌" if x else "✅")
             else:
                 display_df[col] = display_df[col].apply(lambda x: "✅" if x else "❌")
+    
+    # Tambahkan warna untuk status deliverability
+    display_df['deliverability'] = display_df['deliverability'].apply(
+        lambda x: f"<span style='color:green;font-weight:bold'>{x}</span>" if x == "DELIVERABLE" 
+        else (f"<span style='color:orange;font-weight:bold'>{x}</span>" if x == "RISKY" 
+              else (f"<span style='color:red;font-weight:bold'>{x}</span>" if x == "UNDELIVERABLE" 
+                    else (f"<span style='color:red;font-weight:bold'>{x}</span>" if x == "FAILED" 
+                          else f"<span style='color:blue;font-weight:bold'>{x}</span>")))
+    )
     
     # Rename kolom untuk tampilan yang lebih baik
     display_df = display_df.rename(columns={
@@ -328,11 +407,24 @@ def display_validation_table(df):
                    'Koreksi Otomatis']
     display_df = display_df[[col for col in column_order if col in display_df.columns]]
     
-    # Tampilkan tabel
-    st.dataframe(display_df)
+    # Tampilkan tabel dengan HTML untuk warna
+    st.write(display_df.to_html(escape=False), unsafe_allow_html=True)
     
-    # Download hasil sebagai CSV
-    csv = df.to_csv(index=False)
+    # Tambahkan penjelasan untuk status FAILED
+    if 'FAILED' in df['deliverability'].values:
+        st.warning("""
+        ⚠️ **Catatan:** Email dengan status **FAILED** tidak berhasil divalidasi oleh API. Ini bisa disebabkan oleh:
+        - Rate limit dari API (terlalu banyak request dalam waktu singkat)
+        - Masalah koneksi internet
+        - Email yang tidak valid atau format yang tidak didukung
+        
+        Coba validasi ulang email tersebut secara terpisah atau setelah beberapa saat.
+        """)
+    
+    # Format dan download hasil sebagai CSV
+    export_df = format_csv_export(df)
+    csv = export_df.to_csv(index=False)
+    
     st.download_button(
         label="Download Hasil sebagai CSV",
         data=csv,
@@ -524,6 +616,10 @@ def validate_emails():
         # Validasi email menggunakan API
         result = validate_email(email, use_api=True)
         results.append(result)
+        
+        # Tambahkan delay 1.5 detik antara setiap API call untuk menghindari rate limit
+        if i < total_emails - 1:  # Tidak perlu delay setelah email terakhir
+            time.sleep(1.5)
     
     # Simpan hasil validasi ke session state
     st.session_state.validation_results = results
